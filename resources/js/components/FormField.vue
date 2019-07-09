@@ -88,7 +88,12 @@
                 });
 
                 Object.keys(aaa).forEach(locale => {
-                    formData.append(locale, JSON.stringify(aaa[locale]));
+                    let previousFormData = JSON.parse(formData.get(locale) || JSON.stringify({}));
+                    let newFormData = aaa[locale];
+
+                    Object.keys(newFormData).forEach(key => { previousFormData[key] = newFormData[key]; });
+
+                    formData.append(locale, JSON.stringify(previousFormData));
                 });
             },
         },

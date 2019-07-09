@@ -40,8 +40,6 @@
          * Mount the component.
          */
         mounted() {
-            console.log(this.field.fields);
-
             this.currentLocale = Object.keys(this.locales)[0] || null;
         },
 
