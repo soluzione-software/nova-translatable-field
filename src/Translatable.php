@@ -17,44 +17,54 @@ class Translatable extends Field
 
     private $locales = [];
 
+    /** @var Field */
     private $field;
+
+    /** @var array */
+    private $fields;
 
     /**
      * Create a new field.
      *
      * @param Field $field
      */
-    public function __construct($field)
+    public function __construct(Field $field)
     {
         parent::__construct($field->name, $field->attribute, $field->resolveCallback);
 
         $locales = app('translatable.locales')->all();
         $this->locales = array_combine($locales, array_map(function ($value){return strtoupper($value);}, $locales));
         $this->field = $field;
+        $this->fields = array_map(function () use ($field) {return clone $field;}, $this->locales);
 
-        $this->withMeta(['locales' => $this->locales, 'fields' => array_map(function () use ($field) {return $field;}, $this->locales)]);
+        $this->withMeta([
+            'locales' => $this->locales,
+            'fields' => $this->fields
+        ]);
+
+        $this->indexLocale(app('translatable.locales')->current());
+
+        $this->showOnIndex = $this->field->showOnIndex;
+        $this->showOnDetail = $this->field->showOnDetail;
+        $this->showOnCreation = $this->field->showOnCreation;
+        $this->showOnUpdate = $this->field->showOnUpdate;
+    }
+
+    public function indexLocale($locale)
+    {
+        return $this->withMeta(['indexLocale' => $locale]);
     }
 
     /**
-     * Resolve the given attribute from the given resource.
-     *
-     * @param  mixed  $resource
-     * @param  string  $attribute
-     * @return mixed
+     * {@inheritdoc}
      */
-    protected function resolveAttribute($resource, $attribute)
+    public function resolve($resource, $attribute = null)
     {
-        $results = [];
-
-        $translations = $resource->translations()
-            ->get([config('translatable.locale_key'), $attribute])
-            ->toArray();
-
-        foreach ( $translations as $translation ) {
-            $results[$translation[config('translatable.locale_key')]] = $translation[$attribute];
+        foreach ($this->fields as $localeCode => $field) {
+            $resource->setDefaultLocale($localeCode);
+            $field->resolve($resource, $attribute);
         }
-
-        return $results;
+        return;
     }
 
     /**
@@ -83,5 +93,27 @@ class Translatable extends Field
         }
 
         $request->replace($requestData);
+    }
+
+    /**
+     * Prepare the field for JSON serialization.
+     *
+     * @return array
+     */
+    public function jsonSerialize()
+    {
+        return array_merge([
+            'component' => $this->component(),
+            'prefixComponent' => true,
+            'indexName' => $this->name,
+            'name' => $this->name,
+            'attribute' => $this->attribute,
+            'value' => $this->value,
+            'panel' => $this->panel,
+            'sortable' => $this->sortable,
+            'nullable' => $this->nullable,
+            'readonly' => $this->isReadonly(app(NovaRequest::class)),
+            'textAlign' => $this->textAlign,
+        ], $this->meta());
     }
 }
