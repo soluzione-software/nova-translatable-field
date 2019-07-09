@@ -1,4 +1,5 @@
 # Nova Translatable Field
+Adds the ability to show and edit translated fields created with [astrotomic/laravel-translatable](https://github.com/Astrotomic/laravel-translatable) package.
 
 ## Installation and usage
 
