@@ -93,7 +93,7 @@
 
                     Object.keys(newFormData).forEach(key => { previousFormData[key] = newFormData[key]; });
 
-                    formData.append(locale, JSON.stringify(previousFormData));
+                    formData.set(locale, JSON.stringify(previousFormData));
                 });
             },
         },
