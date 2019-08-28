@@ -5,7 +5,7 @@
           class="inline-block font-bold cursor-pointer mr-2 animate-text-color select-none"
           :class="{ 'text-60': localeKey !== currentLocale, 'text-primary border-b-2': localeKey === currentLocale }"
           :key="`a-${localeKey}`"
-          v-for="(locale, localeKey) in field.locales"
+          v-for="(locale, localeKey) in locales"
           @click="changeLocale(localeKey)"
       >
         {{ locale }}
@@ -16,9 +16,8 @@
       <component
           v-show="localeKey === currentLocale"
           :is="'form-' + originalField.component"
-          :errors="errors"
-          :resource-id="originalField.resourceId"
-          :resource-name="originalField.resourceName"
+          :resource-id="resourceId"
+          :resource-name="resourceName"
           :field="originalField"
           :ref="'field-' + originalField.attribute + '-' + localeKey"
       />

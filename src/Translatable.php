@@ -2,6 +2,7 @@
 
 namespace SoluzioneSoftware\Nova\Fields;
 
+use Exception;
 use Illuminate\Support\Arr;
 use Laravel\Nova\Fields\Field;
 use Laravel\Nova\Http\Requests\NovaRequest;
@@ -115,5 +116,29 @@ class Translatable extends Field
             'readonly' => $this->isReadonly(app(NovaRequest::class)),
             'textAlign' => $this->textAlign,
         ], $this->meta());
+    }
+
+    /**
+     * @param $name
+     * @return string
+     * @throws Exception
+     */
+    function __get($name){
+        if (isset($this->$name)){
+            return $this->$name;
+        }
+        elseif (isset($this->field->$name)){
+            return $this->field->$name;
+        }
+
+        throw new Exception("Undefined property \"$name\"");
+    }
+
+    public function __call($method, $arguments)
+    {
+        if (method_exists($this->field, $method))
+            return call_user_func_array($this->field->$method, $arguments);
+
+        return parent::__call($method, $arguments);
     }
 }
