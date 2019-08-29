@@ -4,6 +4,7 @@ namespace SoluzioneSoftware\Nova\Fields;
 
 use Exception;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 use Laravel\Nova\Fields\Field;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
@@ -36,11 +37,13 @@ class Translatable extends Field
         $locales = app('translatable.locales')->all();
         $this->locales = array_combine($locales, array_map(function ($value){return strtoupper($value);}, $locales));
         $this->field = $field;
-        $this->fields = array_map(function () use ($field) {return clone $field;}, $this->locales);
+
+        $fields = array_map(function () use ($field) {return clone $field;}, $locales);
+        $this->fields = array_combine($locales, $fields);
 
         $this->withMeta([
             'locales' => $this->locales,
-            'fields' => $this->fields
+            'fields' => $this->fields,
         ]);
 
         $this->indexLocale(app('translatable.locales')->current());
@@ -61,11 +64,24 @@ class Translatable extends Field
      */
     public function resolve($resource, $attribute = null)
     {
+        /** @var Field $field */
         foreach ($this->fields as $localeCode => $field) {
             $resource->setDefaultLocale($localeCode);
             $field->resolve($resource, $attribute);
+            $this->localizeField($field, $localeCode);
         }
         return;
+    }
+
+    protected function localizeField(Field $field, string $locale)
+    {
+        $field->attribute = $this->localizeAttribute($locale, $field->attribute);
+        return $field;
+    }
+
+    protected function localizeAttribute(string $locale, string $attribute = null)
+    {
+        return is_null($locale) ? null : $locale . '_' . $attribute;
     }
 
     /**
@@ -79,21 +95,10 @@ class Translatable extends Field
      */
     protected function fillAttributeFromRequest(NovaRequest $request, $requestAttribute, $model, $attribute)
     {
-        $requestData = $request->all();
-
         foreach ($this->locales as $localeCode => $locale) {
-            if (is_null($values = Arr::get($requestData, "$localeCode")))
-                continue;
-
-            $values = json_decode($values, true);
-
             $model->setDefaultLocale($localeCode);
-            $request->replace($values);
-
-            $this->field->fillAttributeFromRequest($request, $requestAttribute, $model, $attribute);
+            $this->field->fillAttributeFromRequest($request, $this->localizeAttribute($localeCode, $requestAttribute), $model, $attribute);
         }
-
-        $request->replace($requestData);
     }
 
     /**

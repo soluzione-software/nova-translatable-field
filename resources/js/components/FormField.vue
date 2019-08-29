@@ -19,7 +19,7 @@
           :resource-id="resourceId"
           :resource-name="resourceName"
           :field="originalField"
-          :ref="'field-' + originalField.attribute + '-' + localeKey"
+          :ref="'field-' + originalField.attribute"
       />
     </template>
   </div>
@@ -52,9 +52,8 @@
              * Set the initial, internal value for the field.
              */
             setInitialValue() {
-                Object.keys(this.fields).forEach(locale => {
-                    let f = this.$refs['field-' + this.fields[locale].attribute + '-' + locale][0];
-
+                Object.values(this.fields).forEach(field => {
+                    let f = this.$refs['field-' + field.attribute][0];
                     f.setInitialValue();
                 });
             },
@@ -69,30 +68,10 @@
              * Fill the given FormData object with the field's internal value.
              */
             fill(formData) {
-                // todo: refactor this shit
-                let aaa = {};
+                Object.values(this.fields).forEach(field => {
+                    let f = this.$refs['field-' + field.attribute][0];
 
-                Object.keys(this.locales).forEach(locale => {
-                    let f = this.$refs['field-' + this.fields[locale].attribute + '-' + locale][0];
-
-                    let data = new FormData;
-                    f.fill(data);
-
-                    for (const [key, value]  of data.entries()) {
-                        if (aaa[locale] === undefined){
-                            aaa[locale] = {};
-                        }
-                        aaa[locale][key] = value;
-                    }
-                });
-
-                Object.keys(aaa).forEach(locale => {
-                    let previousFormData = JSON.parse(formData.get(locale) || JSON.stringify({}));
-                    let newFormData = aaa[locale];
-
-                    Object.keys(newFormData).forEach(key => { previousFormData[key] = newFormData[key]; });
-
-                    formData.set(locale, JSON.stringify(previousFormData));
+                    f.fill(formData);
                 });
             },
         },
