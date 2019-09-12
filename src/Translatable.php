@@ -4,6 +4,7 @@ namespace SoluzioneSoftware\Nova\Fields;
 
 use Exception;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 use Laravel\Nova\Fields\Field;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
@@ -36,14 +37,17 @@ class Translatable extends Field
         $locales = app('translatable.locales')->all();
         $this->locales = array_combine($locales, array_map(function ($value){return strtoupper($value);}, $locales));
         $this->field = $field;
-        $this->fields = array_map(function () use ($field) {return clone $field;}, $this->locales);
+
+        $fields = array_map(function () use ($field) {return clone $field;}, $locales);
+        $this->fields = array_combine($locales, $fields);
 
         $this->withMeta([
             'locales' => $this->locales,
-            'fields' => $this->fields
+            'fields' => $this->fields,
+            'originalField' => $this->field,
         ]);
 
-        $this->indexLocale(app('translatable.locales')->current());
+        $this->indexLocale(app()->getLocale());
 
         $this->showOnIndex = $this->field->showOnIndex;
         $this->showOnDetail = $this->field->showOnDetail;
@@ -61,11 +65,38 @@ class Translatable extends Field
      */
     public function resolve($resource, $attribute = null)
     {
+        $this->field->resolve($resource, $attribute);
+
+        /** @var Field $field */
         foreach ($this->fields as $localeCode => $field) {
             $resource->setDefaultLocale($localeCode);
             $field->resolve($resource, $attribute);
         }
         return;
+    }
+
+    /**
+     * Resolve the given attribute from the given resource.
+     *
+     * @param  mixed  $resource
+     * @param  string  $attribute
+     * @return mixed
+     */
+    protected function resolveAttribute($resource, $attribute)
+    {
+        return $resource->translations->pluck($attribute, config('translatable.locale_key'));
+    }
+
+
+    protected function localizeField(Field $field, string $locale)
+    {
+        $field->attribute = $this->localizeAttribute($locale, $field->attribute);
+        return $field;
+    }
+
+    protected function localizeAttribute(string $locale, string $attribute = null)
+    {
+        return is_null($locale) ? null : $locale . '_' . $attribute;
     }
 
     /**
