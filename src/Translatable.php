@@ -44,9 +44,10 @@ class Translatable extends Field
         $this->withMeta([
             'locales' => $this->locales,
             'fields' => $this->fields,
+            'originalField' => $this->field,
         ]);
 
-        $this->indexLocale(app('translatable.locales')->current());
+        $this->indexLocale(app()->getLocale());
 
         $this->showOnIndex = $this->field->showOnIndex;
         $this->showOnDetail = $this->field->showOnDetail;
@@ -64,14 +65,28 @@ class Translatable extends Field
      */
     public function resolve($resource, $attribute = null)
     {
+        $this->field->resolve($resource, $attribute);
+
         /** @var Field $field */
         foreach ($this->fields as $localeCode => $field) {
             $resource->setDefaultLocale($localeCode);
             $field->resolve($resource, $attribute);
-            $this->localizeField($field, $localeCode);
         }
         return;
     }
+
+    /**
+     * Resolve the given attribute from the given resource.
+     *
+     * @param  mixed  $resource
+     * @param  string  $attribute
+     * @return mixed
+     */
+    protected function resolveAttribute($resource, $attribute)
+    {
+        return $resource->translations->pluck($attribute, config('translatable.locale_key'));
+    }
+
 
     protected function localizeField(Field $field, string $locale)
     {
@@ -95,10 +110,21 @@ class Translatable extends Field
      */
     protected function fillAttributeFromRequest(NovaRequest $request, $requestAttribute, $model, $attribute)
     {
+        $requestData = $request->all();
+
         foreach ($this->locales as $localeCode => $locale) {
+            if (is_null($values = Arr::get($requestData, "$localeCode")))
+                continue;
+
+            $values = json_decode($values, true);
+
             $model->setDefaultLocale($localeCode);
-            $this->field->fillAttributeFromRequest($request, $this->localizeAttribute($localeCode, $requestAttribute), $model, $attribute);
+            $request->replace($values);
+
+            $this->field->fillAttributeFromRequest($request, $requestAttribute, $model, $attribute);
         }
+
+        $request->replace($requestData);
     }
 
     /**
