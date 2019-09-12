@@ -12,7 +12,7 @@
 
         data() {
             return {
-                originalField: this.field.fields[this.field.indexLocale],
+                originalField: this.field.originalField,
             }
         },
     }
