@@ -3,8 +3,7 @@
 namespace SoluzioneSoftware\Nova\Fields;
 
 use Exception;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\Model;
 use Laravel\Nova\Fields\Field;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
@@ -38,7 +37,7 @@ class Translatable extends Field
         $this->locales = array_combine($locales, array_map(function ($value){return strtoupper($value);}, $locales));
         $this->field = $field;
 
-        $fields = array_map(function () use ($field) {return clone $field;}, $locales);
+        $fields = array_map(function ($locale) use ($field) {return $this->localizeField(clone $field, $locale);}, $locales);
         $this->fields = array_combine($locales, $fields);
 
         $this->withMeta([
@@ -61,17 +60,18 @@ class Translatable extends Field
     }
 
     /**
-     * {@inheritdoc}
+     * @param \Astrotomic\Translatable\Contracts\Translatable $resource
+     * @param string|null $attribute
+     * @return void
      */
     public function resolve($resource, $attribute = null)
     {
-        $this->field->resolve($resource, $attribute);
-
         /** @var Field $field */
         foreach ($this->fields as $localeCode => $field) {
             $resource->setDefaultLocale($localeCode);
-            $field->resolve($resource, $attribute);
+            $field->resolve($resource, $this->field->attribute);
         }
+
         return;
     }
 
@@ -87,7 +87,6 @@ class Translatable extends Field
         return $resource->translations->pluck($attribute, config('translatable.locale_key'));
     }
 
-
     protected function localizeField(Field $field, string $locale)
     {
         $field->attribute = $this->localizeAttribute($locale, $field->attribute);
@@ -96,7 +95,7 @@ class Translatable extends Field
 
     protected function localizeAttribute(string $locale, string $attribute = null)
     {
-        return is_null($locale) ? null : $locale . '_' . $attribute;
+        return is_null($attribute) ? null : "translatable_{$locale}_{$attribute}";
     }
 
     /**
@@ -104,27 +103,28 @@ class Translatable extends Field
      *
      * @param NovaRequest $request
      * @param  string  $requestAttribute
-     * @param  object  $model
+     * @param  Model  $model
      * @param  string  $attribute
      * @return void
      */
     protected function fillAttributeFromRequest(NovaRequest $request, $requestAttribute, $model, $attribute)
     {
+        /** @var array $requestData */
         $requestData = $request->all();
 
         foreach ($this->locales as $localeCode => $locale) {
-            if (is_null($values = Arr::get($requestData, "$localeCode")))
+            $value = $request->get($this->localizeAttribute($localeCode, $requestAttribute));
+            if (is_null($value)){
                 continue;
+            }
 
-            $values = json_decode($values, true);
+            $requestData[$requestAttribute] = $value;
+            $request->replace($requestData);
 
             $model->setDefaultLocale($localeCode);
-            $request->replace($values);
 
             $this->field->fillAttributeFromRequest($request, $requestAttribute, $model, $attribute);
         }
-
-        $request->replace($requestData);
     }
 
     /**

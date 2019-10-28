@@ -12,16 +12,18 @@
             </a>
         </div>
 
-        <component :is="'form-' + originalField.component" :resource-id="resourceId"
-                   :resource-name="resourceName"
-                   :field="currentLocaleField"
-                   :ref="'field-' + originalField.attribute"
-                   :key="currentLocale + '-' + originalField.attribute"
-        />
+        <template v-for="(localizedField, localeKey) in fields">
+            <component
+                v-show="localeKey === currentLocale"
+                :is="'form-' + localizedField.component"
+                :resource-id="resourceId"
+                :resource-name="resourceName"
+                :field="localizedField"
+                :ref="'field-' + localizedField.attribute"
+            />
+        </template>
     </div>
 </template>
-
-
 
 <script>
     import { FormField, HandlesValidationErrors } from 'laravel-nova'
@@ -49,12 +51,13 @@
              * Set the initial, internal value for the field.
              */
             setInitialValue() {
-                this.$refs[`field-${this.originalField.attribute}`].setInitialValue();
+                Object.values(this.fields).forEach(f => {
+                    let field = this.$refs['field-' + f.attribute][0];
+                    field.setInitialValue();
+                });
             },
 
             changeLocale(locale) {
-                this.saveCurrentValue();
-
                 this.currentLocale = locale;
             },
 
@@ -62,46 +65,11 @@
              * Fill the given FormData object with the field's internal value.
              */
             fill(formData) {
-                // todo: refactor this shit
-                let f;
-                let aaa = {};
-
-                Object.keys(this.fields).forEach(locale => {
-                    let data = new FormData;
-
-                    this.changeLocale(locale);
-                    f = this.$refs['field-' + this.originalField.attribute];
-                    f.handleChange(this.fields[locale].value);
-
-                    f.fill(data);
-
-                    for (const [key, value]  of data.entries()) {
-                        if (aaa[locale] === undefined){
-                            aaa[locale] = {};
-                        }
-                        aaa[locale][key] = value;
-                    }
+                Object.values(this.fields).forEach(f => {
+                    let field = this.$refs['field-' + f.attribute][0];
+                    field.fill(formData);
                 });
-
-                Object.keys(aaa).forEach(locale => {
-                    let previousFormData = JSON.parse(formData.get(locale) || JSON.stringify({}));
-                    let newFormData = aaa[locale];
-
-                    Object.keys(newFormData).forEach(key => { previousFormData[key] = newFormData[key]; });
-
-                    formData.set(locale, JSON.stringify(previousFormData));
-                });
-            },
-
-            saveCurrentValue() {
-                this.fields[this.currentLocale].value = this.$refs['field-' + this.originalField.attribute].value;
             },
         },
-
-        computed: {
-            currentLocaleField(){
-                return this.fields[this.currentLocale] || this.originalField;
-            }
-        }
     }
 </script>

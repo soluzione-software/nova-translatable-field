@@ -1,8 +1,8 @@
 <template>
     <component
         :is="'index-' + originalField.component"
-        :field="originalField"
-        :resource-name="originalField.resourceName"
+        :field="localizedField"
+        :resource-name="resourceName"
     />
 </template>
 
@@ -13,7 +13,14 @@
         data() {
             return {
                 originalField: this.field.originalField,
+                indexLocale: this.field.indexLocale,
             }
         },
+
+        computed: {
+            localizedField(){
+                return this.field.fields[this.indexLocale];
+            }
+        }
     }
 </script>
