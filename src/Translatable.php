@@ -114,9 +114,6 @@ class Translatable extends Field
 
         foreach ($this->locales as $localeCode => $locale) {
             $value = $request->get($this->localizeAttribute($localeCode, $requestAttribute));
-            if (is_null($value)){
-                continue;
-            }
 
             $requestData[$requestAttribute] = $value;
             $request->replace($requestData);
