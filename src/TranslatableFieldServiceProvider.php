@@ -17,7 +17,6 @@ class TranslatableFieldServiceProvider extends ServiceProvider
     {
         Nova::serving(function (ServingNova $event) {
             Nova::script('translatable-field', __DIR__.'/../dist/js/field.js');
-            Nova::style('translatable-field', __DIR__.'/../dist/css/field.css');
         });
     }
 
