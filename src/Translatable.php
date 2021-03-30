@@ -87,11 +87,15 @@ class Translatable extends Field
      */
     public function resolve($resource, $attribute = null)
     {
+        $defaultLocale = $resource->getDefaultLocale();
+
         /** @var Field $field */
         foreach ($this->fields as $localeCode => $field) {
             $resource->setDefaultLocale($localeCode);
             $field->resolve($resource, $this->field->attribute);
         }
+
+        $resource->setDefaultLocale($defaultLocale);
     }
 
     /**
