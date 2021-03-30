@@ -9,8 +9,16 @@
     "require": {
         "php": ">=7.1.0",
         "ext-json": "*",
-        "astrotomic/laravel-translatable": "^11.1"
+        "astrotomic/laravel-translatable": "^11.1",
+        "laravel/framework": "5.8.* | ^6.0 | ^7.0 | ^8.0",
+        "laravel/nova": "~2.0 | ~3.0"
     },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://nova.laravel.com"
+        }
+    ],
     "autoload": {
         "psr-4": {
             "SoluzioneSoftware\\Nova\\Fields\\": "src/"
